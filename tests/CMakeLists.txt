@@ -1,0 +1,2 @@
+add_subdirectory(compressed)
+add_subdirectory(pointer_based)
