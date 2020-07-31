@@ -1,6 +1,7 @@
 set(test_NAMES
         CBlockTreeFixture
-        CBitBlockTreeFixture)
+        CBitBlockTreeFixture
+        BTCTFixture)
 
 
 foreach( exe ${test_NAMES} )

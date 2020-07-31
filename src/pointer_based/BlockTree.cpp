@@ -48,6 +48,21 @@ int BlockTree::select(int c, int j) {
 }
 
 
+void BlockTree::add_leaf_rank_select_support() {
+    root_block_->add_leaf_rank_select_support();
+}
+
+
+int BlockTree::leaf_rank(int i) {
+    return root_block_->leaf_rank(i);
+}
+
+
+int BlockTree::leaf_select(int j) {
+    return root_block_->leaf_select(j);
+}
+
+
 std::vector<std::vector<Block*>> BlockTree::levelwise_iterator() {
     std::vector<std::vector<Block*>> result = {{root_block_}};
     while (!dynamic_cast<LeafBlock*>(result.back()[0])) {

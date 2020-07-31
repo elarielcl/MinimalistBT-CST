@@ -17,6 +17,12 @@ public:
     std::unordered_map<int,int> ranks_;
     std::unordered_map<int,int> second_ranks_;
 
+    int leaf_rank_;
+    int first_leaf_rank_;
+    int second_leaf_rank_;
+    bool starts_with_end_leaf_;
+    bool suffix_starts_with_end_leaf_;
+
     Block* first_block_;
     Block* second_block_;
     int offset_;
@@ -39,6 +45,10 @@ public:
     virtual int access(int);
     virtual int rank(int, int);
     virtual int select(int, int);
+
+    virtual int add_leaf_rank_select_support();
+    virtual int leaf_rank(int);
+    virtual int leaf_select(int);
 
     virtual std::vector<Block*>& children(int, int);
     virtual void clean_unnecessary_expansions();

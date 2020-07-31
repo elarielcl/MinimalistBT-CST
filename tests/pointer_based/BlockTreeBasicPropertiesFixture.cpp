@@ -63,6 +63,8 @@ protected:
 
         for (int i = 0; i<input_.size(); ++i)
             characters_[input_[i]].push_back(i);
+
+        block_tree_rs_->add_leaf_rank_select_support();
     }
 
 public:
@@ -159,6 +161,44 @@ TEST_P(BlockTreeBasicPropertiesFixture, selects_check) {
         int c  = pair.first;
         for (int j = 1; j<=pair.second.size(); ++j)
             EXPECT_EQ(block_tree_rs_->select(c, j), pair.second[j-1]);
+    }
+}
+
+
+// This test checks the leaf_rank method for every
+// position in the input
+TEST_P(BlockTreeBasicPropertiesFixture, leaf_ranks_check) {
+    int r = 0;
+    bool one_seen = false;
+    for (int i = 0; i < input_.length(); ++i) {
+        if (input_[i] == input_[0]) {
+            one_seen = true;
+        } else {
+            if (one_seen) {
+                ++r;
+            }
+            one_seen = false;
+        }
+        EXPECT_EQ(block_tree_rs_->leaf_rank(i), r);
+    }
+}
+
+
+// This test checks the leaf_select method for every
+// leaf in the input
+TEST_P(BlockTreeBasicPropertiesFixture, leaf_selects_check) {
+    int r = 0;
+    bool one_seen = false;
+    for (int i = 0; i < input_.length(); ++i) {
+        if (input_[i] == input_[0]) {
+            one_seen = true;
+        } else {
+            if (one_seen) {
+                ++r;
+                EXPECT_EQ(block_tree_rs_->leaf_select(r), i-1);
+            }
+            one_seen = false;
+        }
     }
 }
 
@@ -344,6 +384,87 @@ TEST_P(BlockTreeBasicPropertiesFixture, second_ranks_field_check) {
 
                 for (auto pair: second_ranks)
                     EXPECT_EQ(second_ranks[pair.first], b->second_ranks_[pair.first]);
+            }
+        }
+    }
+}
+
+
+// This test checks if the leaf_rank field is correct
+TEST_P(BlockTreeBasicPropertiesFixture, leaf_rank_field_check) {
+    for (std::vector<Block*> level : block_tree_rs_->levelwise_iterator()) {
+        for (Block *b: level) {
+            int leaf_rank = 0;
+            int r = 0;
+            bool one_seen = b->starts_with_end_leaf_;
+            for (int j = b->start_index_; j<=b->end_index_&& j < input_.size(); ++j) {
+                if (input_[j] == input_[0]) {
+                    one_seen = true;
+                } else {
+                    if (one_seen) {
+                        ++r;
+                    }
+                    one_seen = false;
+                }
+            }
+            leaf_rank = r;
+            EXPECT_EQ(leaf_rank, b->leaf_rank_);
+        }
+    }
+}
+
+
+// This test checks if the first and second_leaf_ranks fields are correct
+TEST_P(BlockTreeBasicPropertiesFixture, first_second_leaf_rank_field_check) {
+    for (std::vector<Block*> level : block_tree_rs_->levelwise_iterator()) {
+        for (Block* b: level) {
+            if (dynamic_cast<BackBlock*>(b)) {
+                int first_rank_leaf = 0;
+                int second_rank_leaf = 0;
+
+                int r = 0;
+                bool one_seen = b->first_block_->starts_with_end_leaf_;
+                int j = b->first_block_->start_index_;
+                for (; j < b->first_block_->start_index_ +  b->offset_; ++j) {
+                    if (input_[j] == input_[0]) {
+                        one_seen = true;
+                    } else {
+                        if (one_seen) {
+                            ++r;
+                        }
+                        one_seen = false;
+                    }
+                }
+                first_rank_leaf = r;
+                r = 0;
+                for (; j <= b->first_block_->end_index_ && j < b->first_block_->start_index_ + b->offset_ + b->length(); ++j) {
+                    if (input_[j] == input_[0]) {
+                        one_seen = true;
+                    } else {
+                        if (one_seen) {
+                            ++r;
+                        }
+                        one_seen = false;
+                    }
+                }
+                second_rank_leaf = r;
+
+                EXPECT_EQ(first_rank_leaf, b->first_leaf_rank_);
+                EXPECT_EQ(second_rank_leaf, b->second_leaf_rank_);
+            }
+        }
+    }
+}
+
+
+// This test checks if the leaf_end_bits are correct
+TEST_P(BlockTreeBasicPropertiesFixture, leaf_end_bits_field_check) {
+    for (std::vector<Block *> level : block_tree_rs_->levelwise_iterator()) {
+        for (Block *b: level) {
+            EXPECT_EQ(b->starts_with_end_leaf_, input_[b->start_index_] != input_[0] && input_[b->start_index_-1] == input_[0]);
+            if (dynamic_cast<BackBlock *>(b)) {
+                BackBlock * bb = dynamic_cast<BackBlock*>(b);
+                EXPECT_EQ(bb->suffix_starts_with_end_leaf_, input_[bb->first_block_->start_index_+bb->offset_] != input_[0] && input_[bb->first_block_->start_index_+bb->offset_-1] == input_[0]);
             }
         }
     }

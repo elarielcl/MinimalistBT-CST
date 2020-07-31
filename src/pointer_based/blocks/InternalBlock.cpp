@@ -23,6 +23,15 @@ int InternalBlock::add_rank_select_support(int c) {
 }
 
 
+int InternalBlock::add_leaf_rank_select_support() {
+    starts_with_end_leaf_ = source_[start_index_] != source_[0] && source_[start_index_-1] == source_[0];
+    for (Block* child: children_) {
+        leaf_rank_ += child->add_leaf_rank_select_support();
+    }
+    return leaf_rank_;
+}
+
+
 int InternalBlock::rank(int c, int i) {
     int cumulative_length = 0;
     int r = 0;
@@ -32,6 +41,31 @@ int InternalBlock::rank(int c, int i) {
         r += child->ranks_[c];
     }
     return 0;
+}
+
+
+int InternalBlock::leaf_rank(int i) {
+    int cumulative_length = 0;
+    int lr = 0;
+    for (Block* child: children_) {
+        cumulative_length += child->length();
+        if (i < cumulative_length) return lr + child->leaf_rank(i-(cumulative_length-child->length()));
+        lr += child->leaf_rank_;
+    }
+    return 0;
+}
+
+
+int InternalBlock::leaf_select(int j) {
+    int cumulative_length = 0;
+    int r = 0;
+    for (auto it = children_.begin(); it != children_.end(); ++it) {
+        if ((it+1) == children_.end()) return (*it)->leaf_select(j-r) + cumulative_length;
+        if (r + (*it)->leaf_rank_ >= j) return (*it)->leaf_select(j-r) + cumulative_length;
+        r += (*it)->leaf_rank_;
+        cumulative_length += (*it)->length();
+    }
+    return -1;
 }
 
 

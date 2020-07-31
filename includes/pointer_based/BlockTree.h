@@ -27,6 +27,10 @@ public:
     int rank(int, int);
     int select(int, int);
 
+    void add_leaf_rank_select_support();
+    int leaf_rank(int);
+    int leaf_select(int);
+
     void process_back_pointers_heuristic();
     void process_back_pointers();
     void clean_unnecessary_expansions();

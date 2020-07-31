@@ -3,7 +3,8 @@
 
 Block::Block(Block* parent, int64_t start_index, int64_t end_index, std::string& source):
         parent_(parent), start_index_(start_index), end_index_(end_index), source_(source), left_(false), right_(false), first_block_(
-        this), second_block_(nullptr), pointing_to_me_(0), level_index_(0), first_occurrence_level_index_(0) {
+        this), second_block_(nullptr), pointing_to_me_(0), level_index_(0), first_occurrence_level_index_(0), leaf_rank_(0), first_leaf_rank_(
+        0), second_leaf_rank_(0), starts_with_end_leaf_(false), suffix_starts_with_end_leaf_(false) {
 
 }
 
@@ -15,6 +16,21 @@ Block::~Block() {
 
 int Block::add_rank_select_support(int c) {
     return 0;
+}
+
+
+int Block::add_leaf_rank_select_support() {
+    return 0;
+}
+
+
+int Block::leaf_rank(int i) {
+    return 0;
+}
+
+
+int Block::leaf_select(int j) {
+    return -1;
 }
 
 
