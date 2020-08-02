@@ -20,6 +20,8 @@ public:
     int add_leaf_rank_select_support();
     int leaf_rank(int);
     int leaf_select(int);
+
+    int add_search_support();
 };
 
 #endif //BLOCKTREE_PLEAVEBLOCK_H

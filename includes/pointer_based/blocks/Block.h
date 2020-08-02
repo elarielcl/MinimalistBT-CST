@@ -23,6 +23,11 @@ public:
     bool starts_with_end_leaf_;
     bool suffix_starts_with_end_leaf_;
 
+    int min_excess_;
+    bool min_in_first_block_;
+    int first_block_min_excess_;
+    int second_block_min_excess_;
+
     Block* first_block_;
     Block* second_block_;
     int offset_;
@@ -49,6 +54,8 @@ public:
     virtual int add_leaf_rank_select_support();
     virtual int leaf_rank(int);
     virtual int leaf_select(int);
+
+    virtual int add_search_support();
 
     virtual std::vector<Block*>& children(int, int);
     virtual void clean_unnecessary_expansions();

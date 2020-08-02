@@ -31,6 +31,8 @@ public:
     int leaf_rank(int);
     int leaf_select(int);
 
+    void add_search_support();
+
     void process_back_pointers_heuristic();
     void process_back_pointers();
     void clean_unnecessary_expansions();

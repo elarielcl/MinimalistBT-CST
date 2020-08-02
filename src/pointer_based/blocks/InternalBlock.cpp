@@ -32,6 +32,23 @@ int InternalBlock::add_leaf_rank_select_support() {
 }
 
 
+int InternalBlock::add_search_support() {
+
+    int min_excess = 1;
+    int prefix_excess = 0;
+    for (Block* child : children_) {
+        int min_excess_child = child->add_search_support();
+        if (min_excess_child + prefix_excess < min_excess) min_excess = min_excess_child + prefix_excess;
+        for (auto pair : child->ranks_) {
+            if (pair.first == source_[0]) prefix_excess += pair.second;
+            else prefix_excess -= pair.second;
+        }
+    }
+    min_excess_ = min_excess;
+    return min_excess_;
+}
+
+
 int InternalBlock::rank(int c, int i) {
     int cumulative_length = 0;
     int r = 0;

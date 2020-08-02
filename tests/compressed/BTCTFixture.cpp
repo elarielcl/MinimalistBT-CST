@@ -58,20 +58,9 @@ protected:
             block_tree_->add_rank_select_support(c);
         }
         block_tree_->add_leaf_rank_select_support();
+        block_tree_->add_search_support();
 
         btct_ = new BTCT(block_tree_, one_symbol);
-
-        bool one_seen = false;
-        for (int i = 0; i<input_.size(); ++i) {
-            if (input_[i] == one_symbol) {
-                one_seen = true;
-            } else {
-                if (one_seen) {
-                    leaf_selects.push_back(i-1);
-                }
-                one_seen = false;
-            }
-        }
     }
 
 public:
@@ -83,7 +72,6 @@ public:
     int one_symbol;
     int r_;
     int max_leaf_length_;
-    std::vector<int> leaf_selects;
 
 
     BTCTFixture() : ::testing::TestWithParam<::testing::tuple<int, int, std::string, CreateBlockTreeFunc*>>() {
@@ -330,6 +318,48 @@ TEST_P(BTCTFixture, leaf_rank_check) {
             one_seen = false;
         }
         EXPECT_EQ(btct_->leaf_rank(i), r);
+    }
+}
+
+
+// This test checks the leaf_select for every
+// position in the input
+TEST_P(BTCTFixture, leaf_select_check) {
+    int r = 0;
+    bool one_seen = false;
+    for (int i = 0; i < input_.length(); ++i) {
+        if (input_[i] == input_[0]) {
+            one_seen = true;
+        } else {
+            if (one_seen) {
+                ++r;
+                EXPECT_EQ(btct_->leaf_select(r), i-1);
+            }
+            one_seen = false;
+        }
+
+    }
+}
+
+
+// This test checks the fwdsearch method for every character
+// in the input and d = {-1, -2} works correctly
+TEST_P(BTCTFixture, fwdsearch_check) {
+    std::unordered_set<int> ds = {-1, -2};
+    for (int d : ds) {
+        for (int i = 0; i < input_.length(); ++i) {
+            int search = btct_->fwdsearch(i, d);
+            int excess = 0;
+            int j = i;
+            while (true) {
+                ++j;
+                if (j == input_.length()) break;
+                excess += (input_[0] == input_[j]) ? 1 : -1;
+                if (excess == d) break;
+            }
+
+            EXPECT_EQ(search, j);
+        }
     }
 }
 

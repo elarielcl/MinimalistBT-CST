@@ -51,6 +51,36 @@ int BackBlock::add_leaf_rank_select_support() {
 }
 
 
+int BackBlock::add_search_support() {
+    int i = 0;
+    int min_excess = 1;
+    int excess = 0;
+    for (; i < length()-offset_; ++i) {
+        excess += (source_[i+start_index_] == source_[0]) ? 1 : -1;
+        if (excess < min_excess) min_excess = excess;
+    }
+
+    int first_min_excess = min_excess;
+    int first_excess = excess;
+    min_excess = 1;
+    excess = 0;
+    for (; i < length(); ++i) {
+        excess += (source_[i+start_index_] == source_[0]) ? 1 : -1;
+        if (excess < min_excess) min_excess = excess;
+    }
+
+    int second_min_excess = min_excess;
+
+    first_block_min_excess_ = first_min_excess;
+    second_block_min_excess_ = second_min_excess;
+
+    min_excess_ = (first_min_excess < first_excess + second_min_excess) ? first_min_excess : (second_min_excess+first_excess);
+    min_in_first_block_ =  (min_excess_ == first_block_min_excess_);
+
+    return min_excess_;
+}
+
+
 int BackBlock::rank(int c, int i) {
     if (i + offset_ >= first_block_->length()) return second_ranks_[c] + second_block_->rank(c, offset_+i-first_block_->length()); //Loop if it's itself
     return first_block_->rank(c, i+offset_) - (first_block_->ranks_[c] - second_ranks_[c]);

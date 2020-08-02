@@ -24,6 +24,11 @@ int Block::add_leaf_rank_select_support() {
 }
 
 
+int Block::add_search_support() {
+    return 0;
+}
+
+
 int Block::leaf_rank(int i) {
     return 0;
 }

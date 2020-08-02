@@ -23,6 +23,8 @@ public:
 
     int leaf_rank(int);
     int leaf_select(int);
+
+    int add_search_support();
 };
 
 #endif //BLOCKTREE_PLAZYINTERNALBLOCK_H

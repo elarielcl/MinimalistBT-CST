@@ -41,6 +41,19 @@ int LeafBlock::add_leaf_rank_select_support() {
 }
 
 
+int LeafBlock::add_search_support() {
+    int excess = 0;
+    int min_excess = 1;
+    std::string rep = represented_string();
+    for (char c : rep) {
+        excess += (c == source_[0]) ? 1 : -1;
+        if (excess < min_excess) min_excess = excess;
+    }
+    min_excess_ = min_excess;
+    return min_excess_;
+}
+
+
 int LeafBlock::rank(int c, int i) {
     int r = 0;
     for (int j = 0; j<=i; ++j) {

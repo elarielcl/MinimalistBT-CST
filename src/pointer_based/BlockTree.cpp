@@ -52,6 +52,10 @@ void BlockTree::add_leaf_rank_select_support() {
     root_block_->add_leaf_rank_select_support();
 }
 
+void BlockTree::add_search_support() {
+    root_block_->add_search_support();
+}
+
 
 int BlockTree::leaf_rank(int i) {
     return root_block_->leaf_rank(i);
