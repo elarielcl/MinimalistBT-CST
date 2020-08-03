@@ -409,6 +409,564 @@ int BTCT::leaf_select(int k) {
 }
 
 
+int BTCT::min_excess(int i, int j) {
+    int e = 0;
+    if (i/first_level_length_ == j/first_level_length_) return min_excess(i%first_level_length_,j%first_level_length_,0,i/first_level_length_,first_level_length_,e);
+    int m = min_excess(i%first_level_length_,first_level_length_-1,0,i/first_level_length_,first_level_length_,e);
+    int be = e;
+
+    int m2 = next_block_min_excess(i/first_level_length_, j/first_level_length_ , e);
+    if (m2+be < m) m = m2+be;
+    be = e;
+    int m3 = min_excess(0,j%first_level_length_,0,j/first_level_length_,first_level_length_,e);
+    if (m3+be< m) m = m3+be;
+    return m;
+}
+
+
+int BTCT::next_block_min_excess(int initial_block, int end_block, int& e) {
+    int number_of_blocks_first_level = (*bt_first_level_prefix_ranks_).size();
+    int m = 1;
+    if (end_block > initial_block + 1) {
+        int r_initial_block = 0;
+        if (initial_block < n_last_level_)
+            r_initial_block = initial_block + n_pre_last_level_ + n_internal_nodes_;
+        else
+            r_initial_block = initial_block - n_last_level_ + n_internal_nodes_;
+
+        int r_end_block = 0;
+        if (end_block < n_last_level_)
+            r_end_block = end_block + n_pre_last_level_ + n_internal_nodes_;
+        else
+            r_end_block = end_block - n_last_level_ + n_internal_nodes_;
+        bool going_up = true;
+        int excess = 0;
+        std::stack<int> down_path;
+        bool different_height =  initial_block < n_last_level_ && end_block >= n_last_level_;
+        while (true) {
+            if (going_up) {
+                while (r_initial_block % r_ != 0) {
+                    ++r_initial_block;
+                    if (r_initial_block >= number_of_blocks_first_level + n_internal_nodes_) break;
+                    if (r_initial_block == r_end_block) {
+                        going_up = false;
+                        break;
+                    }
+                    if (r_initial_block >= n_internal_nodes_) {
+                        if (r_initial_block - n_internal_nodes_ < n_pre_last_level_) initial_block = n_last_level_ +
+                                                                                                     r_initial_block -
+                                                                                                     n_internal_nodes_;
+                        else initial_block = r_initial_block - n_pre_last_level_ - n_internal_nodes_;;
+                        if (initial_block >= number_of_blocks_first_level) break;
+
+                        int local_min = excess + 1-(int) ((*(bt_min_excess_[0]))[initial_block]);
+                        if (local_min < m) {
+                            m = local_min;
+                        }
+                        int rank_ones = ((int) ((*bt_ranks_[0])[initial_block]));
+                        excess += 2*rank_ones - first_level_length_;
+                    } else {
+                        int local_min = excess + 1-(int) ((*(top_min_excess_))[r_initial_block]);
+                        if (local_min < m) {
+                            m = local_min;
+                        }
+                        excess += decoded_excess((*top_excess_)[r_initial_block]);
+                    }
+                }
+
+                //LOOKUP
+                if (going_up && r_initial_block +1 == r_end_block) {
+                    down_path.push(r_end_block);
+                    ++ r_initial_block;
+                    going_up = false;
+                }
+                if (going_up) {
+                    r_initial_block = (r_initial_block - 1) / r_;
+                    if (different_height) different_height = !different_height;
+                    else {
+                        down_path.push(r_end_block);
+                        r_end_block = (r_end_block - 1) / r_;
+                    }
+                }
+            } else {
+                while (!down_path.empty()) {
+                    int next_r_index = down_path.top();
+                    down_path.pop();
+                    for (int r_sibling = ((next_r_index-1)/r_)*r_ + 1; r_sibling < next_r_index; ++r_sibling) {
+                        if (r_sibling >= n_internal_nodes_) {
+                            if (r_sibling - n_internal_nodes_ < n_pre_last_level_) initial_block = n_last_level_ +
+                                                                                                   r_sibling -
+                                                                                                   n_internal_nodes_;
+                            else initial_block = r_sibling - n_pre_last_level_ - n_internal_nodes_;
+
+                            int local_min = excess + 1-(int) ((*(bt_min_excess_[0]))[initial_block]);
+                            if (local_min < m) {
+                                m = local_min;
+                            }
+                            int rank_ones = ((int) ((*bt_ranks_[0])[initial_block]));
+                            excess += 2*rank_ones - first_level_length_;
+                        } else {
+                            int local_min = excess + 1-(int) ((*(top_min_excess_))[r_sibling]);
+                            if (local_min < m) {
+                                m = local_min;
+                            }
+                            excess += decoded_excess((*top_excess_)[r_sibling]);
+                        }
+                    }
+
+                }
+                break;
+            }
+        }
+        e += excess;
+    }
+    return m;
+}
+
+
+int BTCT::min_excess(int i, int j, int level, int level_index, int level_length, int& e) {
+    if (i == 0 && (j == level_length-1 || (j == ((n_-1) % level_length) && level_index == ((*bt_min_excess_[level]).size()-1)))) { // Not looking at padding border j condition!
+        int rank_ones = (*(bt_ranks_[level]))[level_index];
+        e += 2*rank_ones - (j+1);
+        return 1-(*bt_min_excess_[level])[level_index];
+    }
+
+    int m = 1;
+    if (level == number_of_levels_-1) { // Case LeafBlock
+        int excess = 0;
+        auto& leaf_string = *leaf_bv_;
+        int leaf_string_size = leaf_string.size();
+        int k = i;
+        int chunk = (level_length*level_index + k)/64;
+        uint64_t chunk_info = *(leaf_string.m_data+chunk);
+
+        for (; k <= j && level_length*level_index + k < leaf_string_size; ++k) {
+            excess += ((chunk_info >> ((level_length*level_index + k)%64))%2)?1:-1;
+            if (excess < m) m = excess;
+            if ((level_length*level_index + k + 1)%64 == 0) {
+                ++chunk;
+                chunk_info = *(leaf_string.m_data+chunk);
+            }
+        }
+        e += excess;
+        return m;
+    }
+    if ((*bt_bv_[level])[level_index]) { // Case InternalBlock
+        int excess = 0;
+        int child_length = level_length/r_;
+        int initial_block = i/child_length;
+        int end_block = j/child_length;
+
+        int rank = (*bt_bv_rank_[level])(level_index);
+        if (initial_block == end_block) {
+            m = min_excess(i%child_length, j%child_length, level+1, rank*r_ + initial_block,child_length, excess);
+        } else {
+            m = min_excess(i%child_length, child_length-1, level+1, rank*r_ + initial_block,child_length, excess);
+            for (int block = initial_block+1; block<end_block; ++block) {
+                int be = excess;
+                int mm = min_excess(0, child_length - 1, level+1, rank*r_ + block, child_length, excess);
+                if (mm + be < m) m = mm + be;
+            }
+            int be = excess;
+            int mm = min_excess(0, j%child_length, level+1, rank*r_ + end_block, child_length, excess);
+            if (mm + be< m) m = mm + be;
+        }
+        e += excess;
+        return m;
+    } else { // Case BackBlock
+        int back_index = level_index - (*bt_bv_rank_[level])(level_index + 1);
+        int encoded_offset = (*bt_offsets_[level])[back_index];
+
+        int first_block = encoded_offset / level_length;
+        int offset = encoded_offset % level_length;
+
+        if (i + offset < level_length && j + offset < level_length) {
+            if (i == 0 && j + offset == level_length - 1) {
+                int rank_ones = (*bt_second_ranks_[level])[back_index];
+                e += 2*rank_ones - (level_length-offset);
+                int min_excess_first_block = 1-((*(bt_min_excess_back_block_[level]))[back_index]);
+                if ((*(bt_min_in_first_block_[level]))[back_index]) {
+                    min_excess_first_block = (1-((*(bt_min_excess_[level]))[level_index]));
+                }
+                return min_excess_first_block;
+            }
+            m = min_excess(i + offset, j + offset, level, first_block, level_length, e);
+            return m;
+        } else if (i + offset >= level_length && j + offset >= level_length) {
+            if (i + offset == level_length && j == level_length - 1) {
+                int rank_ones = (*(bt_ranks_[level]))[level_index];
+                e += 2*rank_ones - level_length;
+
+                rank_ones = (*bt_second_ranks_[level])[back_index];
+                e -= 2*rank_ones - (level_length-offset);
+
+                int min_excess_second_block = 1-((*(bt_min_excess_back_block_[level]))[back_index]);
+                if (!((*(bt_min_in_first_block_[level]))[back_index])) {
+                    int first_block_excess = 0;
+
+                    first_block_excess += 2*rank_ones - (level_length-offset);
+                    min_excess_second_block = (1-((*(bt_min_excess_[level]))[level_index])) - first_block_excess;
+                }
+                return min_excess_second_block;
+            }
+            m = min_excess(offset + i - level_length, offset + j - level_length, level, first_block + 1, level_length,
+                                    e);
+            return m;
+        } else {
+            int excess = 0;
+            if (i == 0) {
+                int rank_ones = (*bt_second_ranks_[level])[back_index];
+                excess += 2*rank_ones - (level_length-offset);
+
+                int min_excess_first_block = 1-((*(bt_min_excess_back_block_[level]))[back_index]);
+                if ((*(bt_min_in_first_block_[level]))[back_index]) {
+                    min_excess_first_block = (1-((*(bt_min_excess_[level]))[level_index]));
+                }
+                m = min_excess_first_block;
+            } else {
+                m = min_excess(i + offset, level_length - 1, level, first_block, level_length, excess);
+            }
+
+            if (j == level_length - 1) {
+                int be = excess;
+                int rank_ones = (*(bt_ranks_[level]))[level_index];
+                excess += 2*rank_ones - level_length;
+
+                rank_ones = (*bt_second_ranks_[level])[back_index];
+                excess -= 2*rank_ones - (level_length-offset);
+
+                int min_excess_second_block = 1-((*(bt_min_excess_back_block_[level]))[back_index]);
+                if (!((*(bt_min_in_first_block_[level]))[back_index])) {
+                    int first_block_excess = 0;
+
+                    first_block_excess += 2*rank_ones - (level_length-offset);
+                    min_excess_second_block = (1-((*(bt_min_excess_[level]))[level_index])) - first_block_excess;
+                }
+                int mm = min_excess_second_block;
+                if (mm + be < m) m = mm + be;
+            } else {
+                int be = excess;
+                int mm = min_excess(0, offset + j - level_length, level, first_block + 1, level_length, excess);
+                if (mm + be < m) m = mm + be;
+            }
+            e += excess;
+            return m;
+        }
+    }
+}
+
+
+int BTCT::bwdsearch(int i, int d) {
+    int e = 0;
+    int a = bwdsearch(0,i%first_level_length_,d,0, i/first_level_length_, first_level_length_, e);
+    if (a != n_) return a + (i/first_level_length_)*first_level_length_;
+    int index = next_block_bwdsearch(i/first_level_length_, d , e);
+    if (index == -1) return -1;
+    a = bwdsearch(0,first_level_length_-1,d,0, index, first_level_length_, e);
+    if (a != n_) return a + index*first_level_length_;
+    return -1;
+}
+
+
+int BTCT::next_block_bwdsearch(int initial_block, int d, int& e) {
+    int r_initial_block = 0;
+    int index_first = (top_excess_->size() + n_pre_last_level_);
+    if (initial_block < n_last_level_)
+        r_initial_block = initial_block + n_pre_last_level_ + n_internal_nodes_;
+    else {
+        r_initial_block = initial_block - n_last_level_ + n_internal_nodes_;
+        index_first = (index_first - 1) / r_;
+    }
+
+    bool going_up = true;
+    while (true) {
+        if (going_up) {
+            if (r_initial_block == 0) break;
+            while ((r_initial_block - 1) % r_ != 0) {
+                --r_initial_block;
+                if (r_initial_block >= n_internal_nodes_) {
+                    if (r_initial_block - n_internal_nodes_ < n_pre_last_level_) initial_block = n_last_level_ +
+                                                                                                 r_initial_block -
+                                                                                                 n_internal_nodes_;
+                    else initial_block = r_initial_block - n_pre_last_level_ - n_internal_nodes_;
+
+                    int excess = 0;
+                    int rank_ones = ((int) ((*bt_ranks_[0])[initial_block]));
+                    excess += 2 * rank_ones - first_level_length_;
+
+                    int min_excess = 1 - ((*(bt_min_excess_[0]))[initial_block]);
+                    int reached = ((excess - min_excess) > excess) ? (excess - min_excess) : excess;
+                    if (e + reached >= -d) {
+                        return initial_block;
+                    } else {
+                        e += excess;
+                    }
+                } else {
+                    int excess = decoded_excess((*top_excess_)[r_initial_block]);
+                    int min_excess = 1 - ((*(top_min_excess_))[r_initial_block]);
+                    int reached = ((excess - min_excess) > excess) ? (excess - min_excess) : excess;
+                    if (e + reached >= -d) {
+                        going_up = false;
+                        break;
+                    } else {
+                        e += excess;
+                    }
+                }
+            }
+            // LOOKUP
+            if (going_up && r_initial_block != index_first) {
+                if (r_initial_block - 1 >= n_internal_nodes_) {
+                    if (r_initial_block - 1 - n_internal_nodes_ < n_pre_last_level_) initial_block = n_last_level_ +
+                                                                                                     r_initial_block -
+                                                                                                     1 -
+                                                                                                     n_internal_nodes_;
+                    else initial_block = r_initial_block - 1 - n_pre_last_level_ - n_internal_nodes_;
+                    int excess = 0;
+
+                    int rank_ones = ((int) ((*bt_ranks_[0])[initial_block]));
+                    excess += 2 * rank_ones - first_level_length_;
+                    int min_excess = 1 - ((*(bt_min_excess_[0]))[initial_block]);
+                    int reached = ((excess - min_excess) > excess) ? (excess - min_excess) : excess;
+                    if (e + reached >= -d) {
+                        return initial_block;
+                    }
+                } else {
+                    int excess = decoded_excess((*top_excess_)[r_initial_block - 1]);
+                    int min_excess = 1 - ((*(top_min_excess_))[r_initial_block - 1]);
+                    int reached = ((excess - min_excess) > excess) ? (excess - min_excess) : excess;
+                    if (e + reached >= -d) {
+                        going_up = false;
+                        --r_initial_block;
+                    }
+                }
+            }
+
+            if (going_up) {
+                r_initial_block = (r_initial_block - 1) / r_;
+                index_first = (index_first - 1) / r_;
+            }
+        } else {
+            if (r_initial_block >= n_internal_nodes_) {
+                r_initial_block -= n_internal_nodes_;
+                if (r_initial_block < n_pre_last_level_) return n_last_level_ + r_initial_block;
+                return r_initial_block - n_pre_last_level_;
+            } else {
+                r_initial_block = r_initial_block * r_ + r_;
+                if (r_initial_block >= n_internal_nodes_ + n_last_level_ + n_pre_last_level_)
+                    r_initial_block = n_internal_nodes_ + n_last_level_ + n_pre_last_level_ - 1;
+                while (true) {
+                    if (r_initial_block >= n_internal_nodes_) {
+                        if (r_initial_block - n_internal_nodes_ < n_pre_last_level_) initial_block = n_last_level_ +
+                                                                                                     r_initial_block -
+                                                                                                     n_internal_nodes_;
+                        else initial_block = r_initial_block - n_pre_last_level_ - n_internal_nodes_;
+
+                        int excess = 0;
+
+                        int rank_ones = ((int) ((*bt_ranks_[0])[initial_block]));
+                        excess += 2 * rank_ones - first_level_length_;
+
+                        int min_excess = 1 - ((*(bt_min_excess_[0]))[initial_block]);
+                        int reached = ((excess - min_excess) > excess) ? (excess - min_excess) : excess;
+                        if (e + reached >= -d) {
+                            return initial_block;
+                        } else {
+                            e += excess;
+                        }
+                        --r_initial_block;
+                    } else {
+                        int excess = decoded_excess((*top_excess_)[r_initial_block]);
+                        int min_excess = 1 - ((*(top_min_excess_))[r_initial_block]);
+                        int reached = ((excess - min_excess) > excess) ? (excess - min_excess) : excess;
+                        if (e + reached >= -d) {
+                            break;
+                        } else {
+                            e += excess;
+                        }
+                        --r_initial_block;
+                    }
+                }
+            }
+        }
+    }
+    return -1;
+
+}
+
+
+int BTCT::bwdsearch(int i, int j, int d, int level, int level_index, int level_length, int& e) {
+
+    if (i == 0 && (j == level_length-1 || (j == ((n_-1) % level_length) && level_index == ((*bt_min_excess_[level]).size()-1)))) {
+        int excess = 0;
+        int rank_ones = (*(bt_ranks_[level]))[level_index];
+
+        excess += 2*rank_ones - (j+1);
+
+        int min_excess = 1-((*(bt_min_excess_[level]))[level_index]);
+        int reached = ((excess-min_excess) > excess) ? (excess-min_excess) : excess;
+        if (e + reached < -d) {
+            e += excess;
+            return n_;
+        }
+    }
+
+    int a = n_;
+    if (level == number_of_levels_-1) { // Case LeafBlock
+        auto& leaf_string = *leaf_bv_;
+        int leaf_string_size = leaf_string.size();
+        int k = (level_length*level_index + j < leaf_string_size) ? j : leaf_string_size - 1 - level_length*level_index;
+        int chunk = (level_length*level_index + k)/64;
+        uint64_t chunk_info = *(leaf_string.m_data+chunk);
+
+        for (; k >= i; --k) {
+            e += ((chunk_info >> ((level_length*level_index + k)%64))%2)?1:-1;
+
+            if (e == -d) return k-1;
+            if ((level_length*level_index + k)%64 == 0) {
+                chunk--;
+                chunk_info = *(leaf_string.m_data+chunk);
+            }
+        }
+        return n_;
+    }
+    if ((*bt_bv_[level])[level_index]) { // Case InternalBlock
+        int child_length = level_length/r_;
+        int initial_block = j/child_length;
+        int end_block = i/child_length;
+        int rank = (*bt_bv_rank_[level])(level_index);
+
+        if (initial_block == end_block) {
+            a = bwdsearch(i%child_length, j%child_length, d, level+1, rank*r_ + initial_block,child_length, e);
+            if (a !=n_) return a + initial_block*child_length;
+            return n_;
+        } else {
+            a = bwdsearch(0, j%child_length, d, level+1, rank*r_ + initial_block,child_length, e);
+            if (a != n_) return a + initial_block*child_length;
+            for (int block = initial_block-1; block>end_block; --block) {
+                a = bwdsearch(0, child_length - 1, d, level+1, rank*r_ + block, child_length, e);
+                if (a != n_) return a + block*child_length;
+            }
+            a = bwdsearch(i%child_length, child_length-1, d, level+1, rank*r_ + end_block, child_length, e);
+            if (a != n_) return a + end_block*child_length;
+            return n_;
+        }
+    } else { // Case BackBlock
+        int back_index = level_index - (*bt_bv_rank_[level])(level_index + 1);
+        int encoded_offset = (*bt_offsets_[level])[back_index];
+
+        int first_block = encoded_offset / level_length;
+        int offset = encoded_offset % level_length;
+
+        if (i + offset < level_length && j + offset < level_length) {
+            if (i == 0 && j + offset == level_length - 1) {
+                int first_block_excess = 0;
+                int rank_ones = (*bt_second_ranks_[level])[back_index];
+                first_block_excess += 2*rank_ones - (level_length-offset);
+
+
+                int min_excess_first_block = 1-((*(bt_min_excess_back_block_[level]))[back_index]);
+                if ((*(bt_min_in_first_block_[level]))[back_index]) {
+                    min_excess_first_block = (1-((*(bt_min_excess_[level]))[level_index]));
+                }
+
+                int reached = ((first_block_excess-min_excess_first_block) > first_block_excess) ? (first_block_excess-min_excess_first_block) : first_block_excess;
+                if (e + reached < -d) {
+                    e += first_block_excess;
+                    return n_;
+                }
+
+            }
+            a = bwdsearch(i + offset, j + offset, d, level, first_block, level_length, e);
+            if (a != n_) return a - offset;
+            return n_;
+        } else if (i + offset >= level_length && j + offset >= level_length) {
+            if (i + offset == level_length && j == level_length - 1) {
+
+                int second_block_excess = 0;
+                int rank_ones = (*(bt_ranks_[level]))[level_index];
+
+                second_block_excess += 2*rank_ones - level_length;
+                rank_ones = (*bt_second_ranks_[level])[back_index];
+                second_block_excess -= 2*rank_ones - (level_length-offset);
+
+                int min_excess_second_block = 1-((*(bt_min_excess_back_block_[level]))[back_index]);
+                if (!((*(bt_min_in_first_block_[level]))[back_index])) {
+                    int first_block_excess = 0;
+                    first_block_excess += 2*rank_ones - (level_length-offset);
+                    min_excess_second_block = (1-((*(bt_min_excess_[level]))[level_index])) - first_block_excess;
+                }
+
+                int reached = ((second_block_excess-min_excess_second_block) > second_block_excess) ? (second_block_excess-min_excess_second_block) : second_block_excess;
+                if (e + reached < -d) {
+                    e += second_block_excess;
+                    return n_;
+                }
+            }
+            a = bwdsearch(offset + i - level_length, offset + j - level_length, d, level, first_block + 1, level_length,
+                                   e);
+            if (a != n_) return a + level_length - offset;
+            return n_;
+        } else {
+            if (j == level_length - 1) {
+
+                int second_block_excess = 0;
+                int rank_ones = (*(bt_ranks_[level]))[level_index];
+
+                second_block_excess += 2*rank_ones - level_length;
+                rank_ones = (*bt_second_ranks_[level])[back_index];
+                second_block_excess -= 2*rank_ones - (level_length-offset);
+
+                int min_excess_second_block = 1-((*(bt_min_excess_back_block_[level]))[back_index]);
+                if (!((*(bt_min_in_first_block_[level]))[back_index])) {
+                    int first_block_excess = 0;
+
+                    first_block_excess += 2*rank_ones - (level_length-offset);
+                    min_excess_second_block = (1-((*(bt_min_excess_[level]))[level_index])) - first_block_excess;
+                }
+                int reached = ((second_block_excess-min_excess_second_block) > second_block_excess) ? (second_block_excess-min_excess_second_block) : second_block_excess;
+                if (e + reached < -d) {
+                    e += second_block_excess;
+                } else {
+                    a = bwdsearch(0, offset + j - level_length, d, level, first_block + 1, level_length,
+                                           e);
+                    if (a != n_) return a + level_length - offset;
+                }
+            } else {
+                a = bwdsearch(0, offset + j - level_length, d, level, first_block + 1, level_length,
+                                       e);
+                if (a != n_) return a + level_length - offset;
+            }
+
+
+            if (i == 0) {
+                int first_block_excess = 0;
+                int rank_ones = (*bt_second_ranks_[level])[back_index];
+                first_block_excess += 2*rank_ones - (level_length-offset);
+
+                int min_excess_first_block = 1-((*(bt_min_excess_back_block_[level]))[back_index]);
+                if ((*(bt_min_in_first_block_[level]))[back_index]) {
+                    min_excess_first_block = (1-((*(bt_min_excess_[level]))[level_index]));
+                }
+
+                int reached = ((first_block_excess-min_excess_first_block) > first_block_excess) ? (first_block_excess-min_excess_first_block) : first_block_excess;
+                if (e + reached < -d) {
+                    e += first_block_excess;
+                } else {
+                    a = bwdsearch(i + offset, level_length-1, d, level, first_block, level_length, e);
+                    if (a != n_) return a - offset;
+                }
+
+            } else {
+                a = bwdsearch(i + offset, level_length - 1, d, level, first_block, level_length, e);
+                if (a != n_) return a - offset;
+            }
+            return a;
+        }
+    }
+}
+
+
+
 int BTCT::fwdsearch(int i, int d) {
     int e = 0;
     int a = fwdsearch(((i+1)%first_level_length_) - 1,first_level_length_-1,d,0, (i+1)/first_level_length_, first_level_length_, e);

@@ -38,6 +38,14 @@ public:
     int fwdsearch(int,int);
     int fwdsearch(int,int,int,int,int, int, int&);
     int next_block_fwdsearch(int,int,int&);
+
+    int bwdsearch(int,int);
+    int bwdsearch(int,int,int,int,int, int, int&);
+    int next_block_bwdsearch(int,int,int&);
+
+    int min_excess(int,int);
+    int min_excess(int,int,int,int, int, int&);
+    int next_block_min_excess(int,int,int&);
 };
 
 int64_t encoded_excess(int64_t);

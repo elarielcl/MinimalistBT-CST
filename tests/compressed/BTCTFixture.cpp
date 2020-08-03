@@ -364,6 +364,43 @@ TEST_P(BTCTFixture, fwdsearch_check) {
 }
 
 
+// This test checks the bwdsearch method for every character
+// in the input and d = {-1, -2} works correctly
+TEST_P(BTCTFixture, bwdsearch_check) {
+    std::unordered_set<int> ds = {-1, -2};
+    for (int d : ds) {
+        for (int i = 0; i < input_.length(); ++i) {
+            int search = btct_->bwdsearch(i, d);
+            int excess = 0;
+            int j = i;
+            while (true) {
+                if (j == 0) break;
+                excess += (input_[0] == input_[j]) ? 1 : -1;
+                if (excess == -d) break;
+                --j;
+            }
+            EXPECT_EQ(search, j-1);
+        }
+    }
+}
+
+
+// This test checks the min_excess(i,j) method for some sample
+TEST_P(BTCTFixture, min_excess_check) {
+    for (int j = 0; j < input_.length(); j = 2*j+1) {
+        for (int i = 0; i <= j; i = 2*i+1) {
+            int min = 1;
+            int e = 0;
+            for (int k = i; k <= j; ++k) {
+                e += (input_[k] == '(') ? 1 : -1;
+                if (e < min) min = e;
+            }
+            EXPECT_EQ(min, btct_->min_excess(i,j));
+        }
+    }
+}
+
+
 // This test checks if the BTCT has the same
 // structure that its corresponding BlockTree
 // in particular the bt_second_leaf_rank field is checked
