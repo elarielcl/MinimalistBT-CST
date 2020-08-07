@@ -32,6 +32,17 @@ public:
     BTCT(BlockTree*, int);
     ~BTCT();
 
+    int first_child(int);
+    int tree_depth(int);
+    int next_sibling(int);
+    int parent(int);
+    int level_ancestor(int, int);
+    int lca(int, int);
+    bool is_leaf(int);
+    bool is_leaf_rank(int, int&);
+    int lb(int);
+    int rb(int);
+
     int leaf_select(int);
     int leaf_rank(int);
 

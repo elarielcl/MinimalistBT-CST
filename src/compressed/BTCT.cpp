@@ -279,7 +279,6 @@ int BTCT::leaf_rank(int i) {
             } else {
                 r -= (*leaf_ranks[level])[current_block];
             }
-
         }
     }
 
@@ -653,6 +652,139 @@ int BTCT::min_excess(int i, int j, int level, int level_index, int level_length,
             return m;
         }
     }
+}
+
+
+int BTCT::first_child(int node) {
+    // check whether node+1 is (
+    int a = this->access(node+1);
+    return (a == '(') ? node+1 : -1;
+}
+
+
+int BTCT::tree_depth(int node) {
+    return 2*rank_1(node) - node - 1;
+}
+
+
+int BTCT::next_sibling(int node) {
+    // check whether close(node)+1 is (
+    int a = this->fwdsearch(node, -1) + 1;
+    int b = this->access(a);
+    return (b == '(')? a : -1;
+}
+
+
+int BTCT::parent(int node) {
+    // check whether node != root
+    if (node == 0) return  0;
+    return this->bwdsearch(node, -2) + 1;
+}
+
+
+int BTCT::level_ancestor(int node, int d) {
+    return this->bwdsearch(node, -d-1) + 1;
+}
+
+
+int BTCT::lca(int node1, int node2) {
+    if (node1 == node2) return node1;
+    if (node1 > node2) {
+        int t = node1;
+        node1 = node2;
+        node2 = t;
+    }
+    int m = this->min_excess(node1, node2);
+    int im = this->fwdsearch(node1-1, m);
+    return this->bwdsearch(im + 1, -2) + 1;
+}
+
+
+bool BTCT::is_leaf(int node) {
+    return this->access(node+1) == 0;
+}
+
+
+bool BTCT::is_leaf_rank(int i, int& leaf_rank) {
+    ++i;
+    auto& first_level_prefix_leaf_ranks = bt_first_level_prefix_leaf_ranks_;
+
+    auto& leaf_ranks = bt_leaf_ranks_;
+    auto& second_leaf_ranks = bt_second_leaf_ranks_;
+    auto& starts_with_end_leaf = bt_starts_with_end_leaf_;
+    auto& suffix_starts_with_end_leaf = bt_suffix_starts_with_end_leaf_;
+
+    int current_block = i/first_level_length_;
+    int current_length = first_level_length_;
+    i = i-current_block*current_length;
+    int level = 0;
+
+    leaf_rank = (*first_level_prefix_leaf_ranks)[current_block];
+    while (level < number_of_levels_-1) {
+        if ((*bt_bv_[level])[current_block]) { // Case InternalBlock
+            current_length /= r_;
+            int child_number = i/current_length;
+            i -= child_number*current_length;
+
+            int firstChild = (*bt_bv_rank_[level])(current_block)*r_;
+            for (int child = firstChild; child < firstChild + child_number; ++child)
+                leaf_rank += (*leaf_ranks[level+1])[child];
+            current_block = firstChild + child_number;
+            ++level;
+        } else { // Case BackBlock
+            int index = current_block - (*bt_bv_rank_[level])(current_block+1);
+            int encoded_offset = (*bt_offsets_[level])[index];
+            int f_condition = (*starts_with_end_leaf[level])[current_block];
+            int s_condition = (*suffix_starts_with_end_leaf[level])[index];
+            if (f_condition && !s_condition) ++leaf_rank;
+            if (!f_condition && s_condition) --leaf_rank;
+
+            current_block = encoded_offset/current_length;
+            i += encoded_offset%current_length;
+            leaf_rank += (*bt_second_leaf_ranks_[level])[index];
+            if (i >= current_length) {
+                ++current_block;
+                i -= current_length;
+            } else {
+                leaf_rank -= (*leaf_ranks[level])[current_block];
+            }
+        }
+    }
+
+    auto& leaf_bv = *leaf_bv_;
+    int chunk = (current_block*current_length)/64;
+    uint64_t chunk_info = *(leaf_bv.m_data + chunk);
+
+    i  += current_block*current_length;
+
+    bool one_seen = (*starts_with_end_leaf[level])[current_block];
+
+    for (int j = current_block*current_length; j <= i; ++j) {
+        int value = (chunk_info >> (j%64))%2;
+        if (value == 1) {
+            one_seen = true;
+        } else {
+            if (one_seen) ++leaf_rank;
+            one_seen = false;
+        }
+        if ((j + 1)%64 == 0) {
+            ++chunk;
+            chunk_info = *(leaf_bv.m_data + chunk);
+        }
+    }
+
+    return (i < leaf_bv_->size() && (*leaf_bv_)[i] == 0);
+}
+
+
+int BTCT::lb(int node) {
+    return this->leaf_rank(node);
+}
+
+
+int BTCT::rb(int node) {
+    int c = this->fwdsearch(node, -1);
+    return this->leaf_rank(c);
 }
 
 
