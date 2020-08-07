@@ -10,7 +10,6 @@ public:
     int n_;
 
     sdsl::int_vector<>* bt_first_level_prefix_leaf_ranks_;
-
     std::vector<sdsl::int_vector<>*> bt_leaf_ranks_;
     std::vector<sdsl::int_vector<>*> bt_second_leaf_ranks_;
     std::vector<sdsl::bit_vector*> bt_starts_with_end_leaf_;
@@ -57,6 +56,9 @@ public:
     int min_excess(int,int);
     int min_excess(int,int,int,int, int, int&);
     int next_block_min_excess(int,int,int&);
+
+
+    int size();
 };
 
 int64_t encoded_excess(int64_t);

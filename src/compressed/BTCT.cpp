@@ -1339,6 +1339,51 @@ int BTCT::fwdsearch(int i, int j, int d, int level, int level_index, int level_l
 }
 
 
+int BTCT::size() {
+    int leaf_rank_info_size = sdsl::size_in_bytes(*(bt_first_level_prefix_leaf_ranks_));
+
+    leaf_rank_info_size += sizeof(void*);
+    for (auto ranks: bt_leaf_ranks_) {
+        leaf_rank_info_size += sdsl::size_in_bytes(*ranks);
+    }
+
+    leaf_rank_info_size += sizeof(void*);
+    for (auto ranks: bt_second_leaf_ranks_) {
+        leaf_rank_info_size += sdsl::size_in_bytes(*ranks);
+    }
+
+    leaf_rank_info_size += sizeof(void*);
+    for (auto flags: bt_starts_with_end_leaf_) {
+        leaf_rank_info_size += sdsl::size_in_bytes(*flags);
+    }
+
+    leaf_rank_info_size += sizeof(void*);
+    for (auto flags: bt_suffix_starts_with_end_leaf_) {
+        leaf_rank_info_size += sdsl::size_in_bytes(*flags);
+    }
+
+
+    int min_excess_info_size = sizeof(void*);
+    for (auto min: bt_min_excess_) {
+        min_excess_info_size += sdsl::size_in_bytes(*min);
+    }
+
+    min_excess_info_size += sizeof(void*);
+    for (auto min: bt_min_excess_back_block_) {
+        min_excess_info_size += sdsl::size_in_bytes(*min);
+    }
+
+    min_excess_info_size += sizeof(void*);
+    for (auto flags: bt_min_in_first_block_) {
+        min_excess_info_size += sdsl::size_in_bytes(*flags);
+    }
+
+    min_excess_info_size += sdsl::size_in_bytes(*(top_excess_));
+    min_excess_info_size += sdsl::size_in_bytes(*(top_min_excess_));
+
+    return CBitBlockTree::size() + leaf_rank_info_size + min_excess_info_size;
+}
+
 
 
 int64_t encoded_excess(int64_t e) {
