@@ -62,6 +62,13 @@ BTCST::BTCST(std::string& input_string, int block_tree_version, int r, int leaf_
 }
 
 
+BTCST::~BTCST() {
+    delete lcp_rlcsa_;
+    delete index_;
+    delete btct_;
+}
+
+
 int BTCST::first_child(int node) {
     return btct_->first_child(node);
 }
