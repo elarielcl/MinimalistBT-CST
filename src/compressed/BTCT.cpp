@@ -213,6 +213,59 @@ BTCT::BTCT(BlockTree * bt, int one_symbol) : CBitBlockTree(bt, one_symbol) {
 }
 
 
+BTCT::BTCT(std::istream& in) : CBitBlockTree(in) {
+
+    in.read((char *) &n_, sizeof(int));
+    in.read((char *) &n_last_level_, sizeof(int));
+    in.read((char *) &n_pre_last_level_, sizeof(int));
+    in.read((char *) &n_internal_nodes_, sizeof(int));
+
+    bt_first_level_prefix_leaf_ranks_ = new sdsl::int_vector<>();
+    (*bt_first_level_prefix_leaf_ranks_).load(in);
+
+    for (int i = 0; i < number_of_levels_; ++i) {
+        bt_leaf_ranks_.push_back(new sdsl::int_vector<>());
+        (*bt_leaf_ranks_[i]).load(in);
+    }
+
+    for (int i = 0; i < number_of_levels_-1; ++i) {
+        bt_second_leaf_ranks_.push_back(new sdsl::int_vector<>());
+        (*bt_second_leaf_ranks_[i]).load(in);
+    }
+
+    for (int i = 0; i < number_of_levels_; ++i) {
+        bt_starts_with_end_leaf_.push_back(new sdsl::bit_vector ());
+        (*bt_starts_with_end_leaf_[i]).load(in);
+    }
+
+    for (int i = 0; i < number_of_levels_-1; ++i) {
+        bt_suffix_starts_with_end_leaf_.push_back(new sdsl::bit_vector ());
+        (*bt_suffix_starts_with_end_leaf_[i]).load(in);
+    }
+
+    for (int i = 0; i < number_of_levels_; ++i) {
+        bt_min_excess_.push_back(new sdsl::int_vector<>());
+        (*bt_min_excess_[i]).load(in);
+    }
+
+    for (int i = 0; i < number_of_levels_-1; ++i) {
+        bt_min_excess_back_block_.push_back(new sdsl::int_vector<>());
+        (*bt_min_excess_back_block_[i]).load(in);
+    }
+
+    for (int i = 0; i < number_of_levels_-1; ++i) {
+        bt_min_in_first_block_.push_back(new sdsl::bit_vector ());
+        (*bt_min_in_first_block_[i]).load(in);
+    }
+
+    top_excess_ = new sdsl::int_vector<>();
+    (*top_excess_).load(in);
+
+    top_min_excess_ = new sdsl::int_vector<>();
+    (*top_min_excess_).load(in);
+}
+
+
 BTCT::~BTCT() {
     delete bt_first_level_prefix_leaf_ranks_;
 
@@ -1382,6 +1435,45 @@ int BTCT::size() {
     min_excess_info_size += sdsl::size_in_bytes(*(top_min_excess_));
 
     return CBitBlockTree::size() + leaf_rank_info_size + min_excess_info_size;
+}
+
+
+void BTCT::serialize(std::ostream& out) {
+
+    CBitBlockTree::serialize(out);
+
+    out.write((char *) &n_, sizeof(int));
+    out.write((char *) &n_last_level_, sizeof(int));
+    out.write((char *) &n_pre_last_level_, sizeof(int));
+    out.write((char *) &n_internal_nodes_, sizeof(int));
+
+    (*bt_first_level_prefix_leaf_ranks_).serialize(out);
+    for (sdsl::int_vector<>* leaf_ranks : bt_leaf_ranks_) {
+        (*leaf_ranks).serialize(out);
+    }
+    for (sdsl::int_vector<>* second_leaf_ranks : bt_second_leaf_ranks_) {
+        (*second_leaf_ranks).serialize(out);
+    }
+    for (sdsl::bit_vector* starts_with_end_leaf : bt_starts_with_end_leaf_) {
+        (*starts_with_end_leaf).serialize(out);
+    }
+    for (sdsl::bit_vector* suffix_starts_with_end_leaf : bt_suffix_starts_with_end_leaf_) {
+        (*suffix_starts_with_end_leaf).serialize(out);
+    }
+
+
+    for (sdsl::int_vector<>* min_excess : bt_min_excess_) {
+        (*min_excess).serialize(out);
+    }
+    for (sdsl::int_vector<>* min_excess_back_block : bt_min_excess_back_block_) {
+        (*min_excess_back_block).serialize(out);
+    }
+    for (sdsl::bit_vector* min_in_first_block : bt_min_in_first_block_) {
+        (*min_in_first_block).serialize(out);
+    }
+    (*top_excess_).serialize(out);
+    (*top_min_excess_).serialize(out);
+
 }
 
 

@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <compressed/BTCT.h>
 
 
 int main() {
@@ -39,9 +40,23 @@ int main() {
     lcbt->access(0);
     std::cout << lcbt->rank_1(10) << std::endl;
 
+    BTCT* btct = new BTCT(bt, input[0]);
+    btct->access(0);
+    std::cout << btct->fwdsearch(1, -1) << std::endl;
+
+    std::ofstream ot2("dna.par.btct");
+    btct->serialize(ot2);
+    ot2.close();
+    std::ifstream it2("dna.par.btct");
+    BTCT* lbtct = new BTCT(it2);
+    lbtct->access(0);
+    std::cout << btct->fwdsearch(1, -1) << std::endl;
+
     delete bt;
     delete cbt;
     delete lcbt;
+    delete btct;
+    delete lbtct;
     return 0;
 }
 

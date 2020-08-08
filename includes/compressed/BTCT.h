@@ -29,6 +29,7 @@ public:
 
 
     BTCT(BlockTree*, int);
+    BTCT(std::istream&);
     ~BTCT();
 
     int first_child(int);
@@ -59,6 +60,7 @@ public:
 
 
     int size();
+    void serialize(std::ostream&);
 };
 
 int64_t encoded_excess(int64_t);
