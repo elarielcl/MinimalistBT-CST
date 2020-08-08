@@ -26,6 +26,7 @@ int main() {
     bt->clean_unnecessary_expansions();
     for (char c: characters)
         bt->add_rank_select_support(c);
+    bt->add_search_support();
 
 
     CBitBlockTree* cbt = new CBitBlockTree(bt, input[0]);
