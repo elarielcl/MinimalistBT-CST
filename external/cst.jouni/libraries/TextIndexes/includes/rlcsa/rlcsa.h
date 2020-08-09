@@ -51,6 +51,7 @@ class RLCSA
     const static usint ENDPOINT_BLOCK_SIZE = 16;
 
     RLCSA(const std::string& base_name, bool print = false);
+    RLCSA(std::ifstream&, bool print = false);
 
     /*
       If multiple_sequences is true, each 0 is treated as a end of sequence marker.
@@ -71,6 +72,8 @@ class RLCSA
     ~RLCSA();
 
     void writeTo(const std::string& base_name) const;
+
+    void save(std::ofstream&);
 
     bool isOk() const;
 
@@ -160,6 +163,7 @@ class RLCSA
 
     size_t getSize() const;
 
+    static RLCSA * load(std::ifstream&);
     static RLCSA * load(const std::string& base_name);
 //--------------------------------------------------------------------------
 //  BASIC OPERATIONS

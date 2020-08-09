@@ -50,9 +50,10 @@ Parameters::set(const parameter_type& param)
 }
 
 void
-Parameters::read(std::ifstream& file)
+Parameters::read(std::ifstream& file, int n_par)
 {
-  while(file)
+  int i = 0;
+  while(file && (i++) < n_par)
   {
     std::string key;
     std::string c;
@@ -60,6 +61,11 @@ Parameters::read(std::ifstream& file)
 
     file >> key >> c >> value;
     if(c == "=") { this->parameters[key] = value; }
+  }
+
+  if (i == n_par+1) {
+      char c;
+      file.read((char *) &c, sizeof(char));
   }
 }
 
@@ -88,7 +94,7 @@ Parameters::write(std::ostream& stream)
 {
   for(std::map<std::string, usint>::iterator iter = this->parameters.begin(); iter != this->parameters.end(); iter++)
   {
-    stream << iter->first << " = " << iter->second << std::endl;
+    stream << iter->first << " = " << iter->second << " ";
   }
 }
 

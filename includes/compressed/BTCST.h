@@ -25,7 +25,7 @@ public:
     int n_;
 
     BTCST(std::string&, int = PAPER, int = 2, int = 16, int = 32, int = 128);
-    //BTCST(std::string&, std::string&, int = PAPER, int = 2, int = 16, int = 32, int = 128);
+    BTCST(std::ifstream&);
     ~BTCST();
 
 
@@ -40,6 +40,9 @@ public:
     int string_ancestor(int, int);
     int child(int, int);
     int string(int, int);
+
+    int size();
+    void serialize(std::ofstream&);
 };
 
 

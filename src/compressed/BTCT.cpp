@@ -711,7 +711,7 @@ int BTCT::min_excess(int i, int j, int level, int level_index, int level_length,
 int BTCT::first_child(int node) {
     // check whether node+1 is (
     int a = this->access(node+1);
-    return (a == '(') ? node+1 : -1;
+    return (a == 1) ? node+1 : -1;
 }
 
 
@@ -724,7 +724,7 @@ int BTCT::next_sibling(int node) {
     // check whether close(node)+1 is (
     int a = this->fwdsearch(node, -1) + 1;
     int b = this->access(a);
-    return (b == '(')? a : -1;
+    return (b == 1)? a : -1;
 }
 
 

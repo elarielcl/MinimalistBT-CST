@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <compressed/BTCT.h>
+#include <compressed/BTCST.h>
 
 
 int main() {
@@ -21,11 +22,13 @@ int main() {
         characters.insert(c);
     }
 
+
     BlockTree* bt = new BlockTree(input, 2, 32);
     bt->process_back_pointers();
     bt->clean_unnecessary_expansions();
     for (char c: characters)
         bt->add_rank_select_support(c);
+    bt->add_leaf_rank_select_support();
     bt->add_search_support();
 
 
@@ -43,7 +46,7 @@ int main() {
 
     BTCT* btct = new BTCT(bt, input[0]);
     btct->access(0);
-    std::cout << btct->fwdsearch(1, -1) << std::endl;
+    std::cout << btct->next_sibling(1) << std::endl;
 
     std::ofstream ot2("dna.par.btct");
     btct->serialize(ot2);
@@ -51,13 +54,25 @@ int main() {
     std::ifstream it2("dna.par.btct");
     BTCT* lbtct = new BTCT(it2);
     lbtct->access(0);
-    std::cout << btct->fwdsearch(1, -1) << std::endl;
+    std::cout << btct->next_sibling(1) << std::endl;
+
+    std::string banana = "banananananananana";
+    BTCST* btcst = new BTCST(banana);
+    std::cout << btcst->suffix_link(4) << std::endl;
+    std::ofstream ott("banana.btcst");
+    btcst->serialize(ott);
+    ott.close();
+    std::ifstream itt("banana.btcst");
+    BTCST* lbtcst = new BTCST(itt);
+    std::cout << btcst->suffix_link(4) << std::endl;
 
     delete bt;
     delete cbt;
     delete lcbt;
     delete btct;
     delete lbtct;
+    delete btcst;
+    delete lbtcst;
     return 0;
 }
 

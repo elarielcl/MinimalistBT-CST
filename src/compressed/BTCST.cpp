@@ -13,7 +13,7 @@ BTCST::BTCST(std::string& input_string, int block_tree_version, int r, int leaf_
     }
 
 
-    BlockTree* bt_top = new BlockTree(input_string, r, leaf_length);
+    BlockTree* bt_top = new BlockTree(topology, r, leaf_length);
     switch (block_tree_version) {
         case PAPER:
             bt_top->process_back_pointers();
@@ -26,6 +26,10 @@ BTCST::BTCST(std::string& input_string, int block_tree_version, int r, int leaf_
             bt_top->process_back_pointers_heuristic();
             break;
     }
+    bt_top->add_rank_select_support('(');
+    bt_top->add_rank_select_support(')');
+    bt_top->add_leaf_rank_select_support();
+    bt_top->add_search_support();
 
 
     btct_ = new BTCT(bt_top, '(');
@@ -59,6 +63,16 @@ BTCST::BTCST(std::string& input_string, int block_tree_version, int r, int leaf_
 
     n_ = input_string.size()+1;
 
+}
+
+
+BTCST::BTCST(std::ifstream& in) {
+    in.read((char *) &n_, sizeof(int));
+    btct_ = new BTCT(in);
+    rlcsa_ = RLCSA::load(in);
+    index_ = new TextIndexRLCSA();
+    index_->rlcsa = rlcsa_;
+    lcp_rlcsa_ = LCP_FMN_RLCSA::load(in);
 }
 
 
@@ -191,4 +205,17 @@ int BTCST::string(int node, int i) {
         if (r == 0) return '$';
         return r;
     }
+}
+
+
+int BTCST::size() {
+    return btct_->size() + rlcsa_->getSize() + lcp_rlcsa_->getSize();
+}
+
+
+void BTCST::serialize(std::ofstream& out) {
+    out.write((char *) &n_, sizeof(int));
+    btct_->serialize(out);
+    rlcsa_->save(out);
+    lcp_rlcsa_->save(out);
 }

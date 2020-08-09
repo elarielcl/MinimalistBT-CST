@@ -78,6 +78,46 @@ RLCSA::RLCSA(const std::string& base_name, bool print) :
   this->ok = true;
 }
 
+
+RLCSA::RLCSA(std::ifstream& in, bool print) :
+        ok(false),
+        sa_samples(0),
+        end_points(0)
+{
+    Parameters parameters;
+    parameters.read(in, 5);
+
+    for(usint c = 0; c < CHARS; c++) { this->array[c] = 0; }
+
+    usint distribution[CHARS];
+    in.read((char*)distribution, CHARS * sizeof(usint));
+    this->buildCharIndexes(distribution);
+
+    for(usint c = 0; c < CHARS; c++)
+    {
+        if(!isEmpty(this->index_ranges[c])) {
+            this->array[c] = new PsiVector(in);
+        }
+    }
+    this->end_points = new DeltaVector(in);
+    this->number_of_sequences = this->end_points->getNumberOfItems();
+
+    in.read((char*)&(this->sample_rate), sizeof(this->sample_rate));
+
+    this->support_locate = parameters.get(SUPPORT_LOCATE);
+    this->support_display = parameters.get(SUPPORT_DISPLAY);
+
+    if(this->support_locate || this->support_display)
+    {
+        bool weighted = parameters.get(WEIGHTED_SAMPLES);
+        this->sa_samples = new SASamples(in, this->sample_rate, weighted);
+    }
+
+    if(print) { parameters.print(); }
+
+    this->ok = true;
+}
+
     RLCSA::RLCSA(uchar* data, usint bytes, usint block_size, usint sa_sample_rate, bool multiple_sequences, bool delete_data) :
   ok(false),
   sa_samples(0),
@@ -504,18 +544,69 @@ RLCSA::writeTo(const std::string& base_name) const
   parameters.write(base_name + PARAMETERS_EXTENSION);
 }
 
+void
+RLCSA::save(std::ofstream& out)
+{
+        Parameters parameters;
+        parameters.set(RLCSA_BLOCK_SIZE.first, this->getBlockSize() * sizeof(usint));
+        parameters.set(SAMPLE_RATE.first, this->sample_rate);
+        parameters.set(SUPPORT_LOCATE.first, this->support_locate);
+        parameters.set(SUPPORT_DISPLAY.first, this->support_display);
+        if(this->sa_samples != 0 && this->sa_samples->isWeighted())
+        {
+            parameters.set(WEIGHTED_SAMPLES.first, 1);
+        }
+        else { parameters.set(WEIGHTED_SAMPLES); }
+        parameters.write(out);
+
+        usint distribution[CHARS];
+        for(usint c = 0; c < CHARS; c++)
+        {
+            distribution[c] = length(this->index_ranges[c]);
+        }
+        out.write((char*)distribution, CHARS * sizeof(usint));
+
+
+        for(usint c = 0; c < CHARS; c++)
+        {
+            if(this->array[c] != 0)
+            {
+                this->array[c]->writeTo(out);
+            }
+        }
+
+        this->end_points->writeTo(out);
+        out.write((char*)&(this->sample_rate), sizeof(this->sample_rate));
+
+        if(this->support_locate || this->support_display)
+        {
+            this->sa_samples->writeTo(out);
+        }
+
+}
+
 bool
 RLCSA::isOk() const
 {
   return this->ok;
 }
 
-RLCSA * 
+RLCSA *
 RLCSA::load(const std::string& base_name){
 
-	 RLCSA *rlcsa = new RLCSA(base_name, false);
-	return rlcsa;
+        RLCSA *rlcsa = new RLCSA(base_name, false);
+       return rlcsa;
 }
+
+
+RLCSA *
+RLCSA::load(std::ifstream& in){
+
+    RLCSA *rlcsa = new RLCSA(in, false);
+    return rlcsa;
+}
+
+
 
 //--------------------------------------------------------------------------
 

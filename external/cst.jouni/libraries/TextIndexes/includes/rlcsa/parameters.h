@@ -26,7 +26,7 @@ class Parameters
     void set(const std::string& key, usint value);
     void set(const parameter_type& param);
 
-    void read(std::ifstream& file);
+    void read(std::ifstream& file, int = INT_MAX);
     void read(const std::string& file_name);
     void print();
     void write(std::ostream& stream);
