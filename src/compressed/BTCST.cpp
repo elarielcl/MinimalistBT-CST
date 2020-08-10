@@ -188,6 +188,31 @@ int BTCST::child(int node, int c) {
 }
 
 
+int BTCST::bin_search_child(int node, int c) {
+    if (c == 0) c = '$';
+    int sdepth = string_depth(node);
+    int child = node+1;
+    int j = -1;
+    while (true) {
+        children[++j] = child;
+        child = btct_->next_sibling(child);
+        if (child == -1) break;
+    }
+
+    int min = 0;
+    int max = j;
+    while (min <= max) {
+        // Key is in a[lo..hi] or not present.
+        int mid = min + (max - min) / 2;
+        int ch = string(children[mid], sdepth);
+        if      (c < ch) max = mid - 1;
+        else if (c > ch) min = mid + 1;
+        else return children[mid];
+    }
+    return -1;
+}
+
+
 int BTCST::string(int node, int i) {
     if (node == node_ && i == i_+1) {
         ++i_;

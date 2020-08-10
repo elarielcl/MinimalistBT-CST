@@ -39,6 +39,7 @@ public:
     int string_depth(int);
     int string_ancestor(int, int);
     int child(int, int);
+    int bin_search_child(int, int);
     int string(int, int);
 
     int size();
