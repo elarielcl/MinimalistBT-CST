@@ -7,6 +7,8 @@
 #include <compressed/BTCT.h>
 #include <compressed/BTCST.h>
 #include <compressed/BTCSTLCSA.h>
+#include <compressed/BTCSTLCSALCSA.h>
+
 
 
 int main() {
@@ -76,6 +78,16 @@ int main() {
     std::ifstream itt2("banana.btcstlcsa");
     BTCSTLCSA* lbtcstlcsa = new BTCSTLCSA(itt2);
     std::cout << lbtcstlcsa->suffix_link(4) << std::endl;
+
+
+    BTCSTLCSALCSA* btcstlcsalcsa = new BTCSTLCSALCSA(banana);
+    std::cout << btcstlcsalcsa->child(0, 'a') << std::endl;
+    std::ofstream ott3("banana.btcstlcsalcsa");
+    btcstlcsalcsa->serialize(ott3);
+    ott3.close();
+    std::ifstream itt3("banana.btcstlcsalcsa");
+    BTCSTLCSALCSA* lbtcstlcsalcsa = new BTCSTLCSALCSA(itt3);
+    std::cout << lbtcstlcsalcsa->child(0, 'a') << std::endl;
     
     delete bt;
     delete cbt;
@@ -86,6 +98,8 @@ int main() {
     delete lbtcst;
     delete btcstlcsa;
     delete lbtcstlcsa;
+    delete btcstlcsalcsa;
+    delete lbtcstlcsalcsa;
     return 0;
 }
 

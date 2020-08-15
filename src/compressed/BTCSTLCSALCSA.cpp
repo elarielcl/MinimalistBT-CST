@@ -1,8 +1,8 @@
-#include <compressed/BTCSTLCSA.h>
+#include <compressed/BTCSTLCSALCSA.h>
 #include <sdsl/suffix_trees.hpp>
 
-BTCSTLCSA::BTCSTLCSA(std::string& input_string, int block_tree_version, int r, int leaf_length,
-             int block_size) {
+BTCSTLCSALCSA::BTCSTLCSALCSA(std::string& input_string, int block_tree_version, int r, int leaf_length,
+                     int block_size) {
 
     sdsl::cst_sada<> cst;
     construct_im(cst, input_string, 1);
@@ -15,6 +15,12 @@ BTCSTLCSA::BTCSTLCSA(std::string& input_string, int block_tree_version, int r, i
     sdsl::csa_bitcompressed<> csa;
     sdsl::construct_im(csa, input_string, 1);
     dsa_ = new LCSALENGTHS::LCSALENGTHS(csa.sa_sample, 128); // Fix Sweet point
+    sdsl::int_vector<> isa(csa.size(),0);
+    for (int i = 0; i < isa.size(); ++i) {
+        isa[csa[i]] = i;
+    }
+    disa_ = new LCSALENGTHS::LCSALENGTHS(isa, 128);
+
 
     std::set<int> alphabet;
     for (char c : input_string) {
@@ -67,7 +73,7 @@ BTCSTLCSA::BTCSTLCSA(std::string& input_string, int block_tree_version, int r, i
 
 }
 
-BTCSTLCSA::BTCSTLCSA(std::ifstream& in) {
+BTCSTLCSALCSA::BTCSTLCSALCSA(std::ifstream& in) {
     in.read((char *) &n_, sizeof(int));
     in.read((char *) &sigma_, sizeof(int));
     children = new int64_t[sigma_+1];
@@ -77,49 +83,51 @@ BTCSTLCSA::BTCSTLCSA(std::ifstream& in) {
     index_->rlcsa = rlcsa_;
     lcp_rlcsa_ = LCP_FMN_RLCSA::load(in);
     dsa_ = new LCSALENGTHS::LCSALENGTHS(in);
+    disa_ = new LCSALENGTHS::LCSALENGTHS(in);
 }
 
 
-BTCSTLCSA::~BTCSTLCSA() {
+BTCSTLCSALCSA::~BTCSTLCSALCSA() {
     delete lcp_rlcsa_;
     delete index_;
     delete btct_;
     delete dsa_;
+    delete disa_;
     delete[] children;
 }
 
 
-int BTCSTLCSA::first_child(int node) {
+int BTCSTLCSALCSA::first_child(int node) {
     return btct_->first_child(node);
 }
 
 
-int BTCSTLCSA::tree_depth(int node) {
+int BTCSTLCSALCSA::tree_depth(int node) {
     return btct_->tree_depth(node);
 }
 
 
-int BTCSTLCSA::next_sibling(int node) {
+int BTCSTLCSALCSA::next_sibling(int node) {
     return btct_->next_sibling(node);
 }
 
 
-int BTCSTLCSA::parent(int node) {
+int BTCSTLCSALCSA::parent(int node) {
     return btct_->parent(node);
 }
 
 
-int BTCSTLCSA::level_ancestor(int node, int d) {
+int BTCSTLCSALCSA::level_ancestor(int node, int d) {
     return btct_->level_ancestor(node, d);
 }
 
 
-int BTCSTLCSA::lca(int node1, int node2) {
+int BTCSTLCSALCSA::lca(int node1, int node2) {
     return btct_->lca(node1, node2);
 }
 
 
-int BTCSTLCSA::suffix_link(int node) {
+int BTCSTLCSALCSA::suffix_link(int node) {
     if (node == 0 || node == 1) return 0;
 
     if (btct_->is_leaf(node)) {
@@ -139,7 +147,7 @@ int BTCSTLCSA::suffix_link(int node) {
 }
 
 
-int BTCSTLCSA::string_depth(int node) {
+int BTCSTLCSALCSA::string_depth(int node) {
     if (node == 0) return 0;
 
     int lr = 0;
@@ -153,7 +161,7 @@ int BTCSTLCSA::string_depth(int node) {
 }
 
 
-int BTCSTLCSA::string_ancestor(int node, int d) {
+int BTCSTLCSALCSA::string_ancestor(int node, int d) {
 
     int initial_bottom_depth = btct_->tree_depth(node);
     int bottom_depth = initial_bottom_depth;
@@ -181,7 +189,7 @@ int BTCSTLCSA::string_ancestor(int node, int d) {
 }
 
 
-int BTCSTLCSA::child(int node, int c) {
+int BTCSTLCSALCSA::child(int node, int c) {
     if (c == 0) c = '$';
     int sdepth = string_depth(node);
     int child = node+1;
@@ -195,7 +203,7 @@ int BTCSTLCSA::child(int node, int c) {
 }
 
 
-int BTCSTLCSA::bin_search_child(int node, int c) {
+int BTCSTLCSALCSA::bin_search_child(int node, int c) {
     if (c == 0) c = '$';
     int sdepth = string_depth(node);
     int child = node+1;
@@ -220,7 +228,7 @@ int BTCSTLCSA::bin_search_child(int node, int c) {
 }
 
 
-int BTCSTLCSA::string(int node, int i) {
+int BTCSTLCSALCSA::string(int node, int i) {
     if (node == node_ && i == i_+1) {
         ++i_;
         psi_ = rlcsa_->getPsi(psi_,1);
@@ -231,7 +239,8 @@ int BTCSTLCSA::string(int node, int i) {
         node_ = node;
         i_ = i;
         int lr = btct_->leaf_rank(node);
-        psi_ = rlcsa_->getPsi(lr,i);
+        if (i > disa_constant) psi_ = (*disa_)[(*dsa_)[lr]+i];
+        else psi_ = rlcsa_->getPsi(lr,i);
 
         int r = rlcsa_->getT(psi_);
         if (r == 0) return '$';
@@ -240,16 +249,17 @@ int BTCSTLCSA::string(int node, int i) {
 }
 
 
-int BTCSTLCSA::size() {
-    return btct_->size() + rlcsa_->getSize() + lcp_rlcsa_->getSize() + dsa_->size_in_bytes();
+int BTCSTLCSALCSA::size() {
+    return btct_->size() + rlcsa_->getSize() + lcp_rlcsa_->getSize() + dsa_->size_in_bytes() + disa_->size_in_bytes();
 }
 
 
-void BTCSTLCSA::serialize(std::ofstream& out) {
+void BTCSTLCSALCSA::serialize(std::ofstream& out) {
     out.write((char *) &n_, sizeof(int));
     out.write((char *) &sigma_, sizeof(int));
     btct_->serialize(out);
     rlcsa_->save(out);
     lcp_rlcsa_->save(out);
     dsa_->serialize(out);
+    disa_->serialize(out);
 }

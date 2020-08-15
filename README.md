@@ -70,7 +70,7 @@ set(project_EXECUTABLES
  ...
  ```
  
- BTCSTLCSA presents the same interface except that it does not require the sa_rate in the construction (since it does not use SA sampling).
+ BTCSTLCSA and BTCSTLCSALCSA present the same interface except that it does not require the sa_rate in the construction (since it does not use SA sampling).
  
  # Contact
  Any error, improvement or suggestion you can write me to `elarielcl` at Gmail. 
