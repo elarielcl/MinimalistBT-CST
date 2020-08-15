@@ -1,8 +1,8 @@
-#include <compressed/BTCST.h>
+#include <compressed/BTCSTLCSA.h>
 #include <sdsl/suffix_trees.hpp>
 
-BTCST::BTCST(std::string& input_string, int block_tree_version, int r, int leaf_length,
-                         int block_size, int sa_sampling_rate) {
+BTCSTLCSA::BTCSTLCSA(std::string& input_string, int block_tree_version, int r, int leaf_length,
+             int block_size) {
 
     sdsl::cst_sada<> cst;
     construct_im(cst, input_string, 1);
@@ -11,6 +11,10 @@ BTCST::BTCST(std::string& input_string, int block_tree_version, int r, int leaf_
         if (cst.bp[i]) topology += "(";
         else topology += ")";
     }
+
+    sdsl::csa_bitcompressed<> csa;
+    sdsl::construct_im(csa, input_string, 1);
+    dsa_ = new LCSALENGTHS::LCSALENGTHS(csa.sa_sample, 128); // Fix Sweet point
 
     std::set<int> alphabet;
     for (char c : input_string) {
@@ -41,26 +45,30 @@ BTCST::BTCST(std::string& input_string, int block_tree_version, int r, int leaf_
     btct_ = new BTCT(bt_top, '(');
     delete bt_top;
 
-
     unsigned char* data = new unsigned char[input_string.size()+1];
     for (int i = 0; i < input_string.size(); ++i) {
         data[i] = input_string[i];
     }
     data[input_string.size()] = 0;
 
-    rlcsa_ = new TextIndexes::RLCSA(data, input_string.size()+1, block_size, sa_sampling_rate, false, false);
+    rlcsa_ = new TextIndexes::RLCSA(data, input_string.size()+1, block_size, 0, false, false);
     index_ = new TextIndexRLCSA();
 
     index_->rlcsa = rlcsa_;
 
-    lcp_rlcsa_ = new LCP_FMN_RLCSA(rlcsa_, (char*)data, input_string.size()+1);
+
+    TextIndexes::RLCSA* temp_rlcsa = new TextIndexes::RLCSA(data, input_string.size()+1, block_size, 128, false, false);;
+    lcp_rlcsa_ = new LCP_FMN_RLCSA(temp_rlcsa, (char*)data, input_string.size()+1);
+
+    delete temp_rlcsa;
     delete[] data;
 
     n_ = input_string.size()+1;
+
 }
 
-
-BTCST::BTCST(std::ifstream& in) {
+//PENDING, THE GOAL IS TO REMOVE THE SA SAMPLING FROM THE RLCSA
+BTCSTLCSA::BTCSTLCSA(std::ifstream& in) {
     in.read((char *) &n_, sizeof(int));
     in.read((char *) &sigma_, sizeof(int));
     children = new int64_t[sigma_+1];
@@ -69,48 +77,50 @@ BTCST::BTCST(std::ifstream& in) {
     index_ = new TextIndexRLCSA();
     index_->rlcsa = rlcsa_;
     lcp_rlcsa_ = LCP_FMN_RLCSA::load(in);
+    dsa_ = new LCSALENGTHS::LCSALENGTHS(in);
 }
 
 
-BTCST::~BTCST() {
+BTCSTLCSA::~BTCSTLCSA() {
     delete lcp_rlcsa_;
     delete index_;
     delete btct_;
+    delete dsa_;
     delete[] children;
 }
 
 
-int BTCST::first_child(int node) {
+int BTCSTLCSA::first_child(int node) {
     return btct_->first_child(node);
 }
 
 
-int BTCST::tree_depth(int node) {
+int BTCSTLCSA::tree_depth(int node) {
     return btct_->tree_depth(node);
 }
 
 
-int BTCST::next_sibling(int node) {
+int BTCSTLCSA::next_sibling(int node) {
     return btct_->next_sibling(node);
 }
 
 
-int BTCST::parent(int node) {
+int BTCSTLCSA::parent(int node) {
     return btct_->parent(node);
 }
 
 
-int BTCST::level_ancestor(int node, int d) {
+int BTCSTLCSA::level_ancestor(int node, int d) {
     return btct_->level_ancestor(node, d);
 }
 
 
-int BTCST::lca(int node1, int node2) {
+int BTCSTLCSA::lca(int node1, int node2) {
     return btct_->lca(node1, node2);
 }
 
 
-int BTCST::suffix_link(int node) {
+int BTCSTLCSA::suffix_link(int node) {
     if (node == 0 || node == 1) return 0;
 
     if (btct_->is_leaf(node)) {
@@ -130,20 +140,21 @@ int BTCST::suffix_link(int node) {
 }
 
 
-int BTCST::string_depth(int node) {
+int BTCSTLCSA::string_depth(int node) {
     if (node == 0) return 0;
 
     int lr = 0;
     if (btct_->is_leaf_rank(node, lr)) {
-        return n_ - rlcsa_->locate(lr-1);
+        return n_ - (*dsa_)[lr-1];
     }
 
     int sc = btct_->fwdsearch(node+1, -1) + 1;
-    return lcp_rlcsa_->get_LCP(btct_->leaf_rank(sc), index_);
+    int i = btct_->leaf_rank(sc);
+    return lcp_rlcsa_->get_LCP(i, (*dsa_)[i]);
 }
 
 
-int BTCST::string_ancestor(int node, int d) {
+int BTCSTLCSA::string_ancestor(int node, int d) {
 
     int initial_bottom_depth = btct_->tree_depth(node);
     int bottom_depth = initial_bottom_depth;
@@ -171,7 +182,7 @@ int BTCST::string_ancestor(int node, int d) {
 }
 
 
-int BTCST::child(int node, int c) {
+int BTCSTLCSA::child(int node, int c) {
     if (c == 0) c = '$';
     int sdepth = string_depth(node);
     int child = node+1;
@@ -185,7 +196,7 @@ int BTCST::child(int node, int c) {
 }
 
 
-int BTCST::bin_search_child(int node, int c) {
+int BTCSTLCSA::bin_search_child(int node, int c) {
     if (c == 0) c = '$';
     int sdepth = string_depth(node);
     int child = node+1;
@@ -210,7 +221,7 @@ int BTCST::bin_search_child(int node, int c) {
 }
 
 
-int BTCST::string(int node, int i) {
+int BTCSTLCSA::string(int node, int i) {
     if (node == node_ && i == i_+1) {
         ++i_;
         psi_ = rlcsa_->getPsi(psi_,1);
@@ -229,16 +240,17 @@ int BTCST::string(int node, int i) {
     }
 }
 
-
-int BTCST::size() {
-    return btct_->size() + rlcsa_->getSize() + lcp_rlcsa_->getSize();
+//PENDING, THE GOAL IS TO REMOVE THE SA SAMPLING FROM THE RLCSA
+int BTCSTLCSA::size() {
+    return btct_->size() + rlcsa_->getSize() + lcp_rlcsa_->getSize() + dsa_->size_in_bytes();
 }
 
-
-void BTCST::serialize(std::ofstream& out) {
+//PENDING, THE GOAL IS TO REMOVE THE SA SAMPLING FROM THE RLCSA
+void BTCSTLCSA::serialize(std::ofstream& out) {
     out.write((char *) &n_, sizeof(int));
     out.write((char *) &sigma_, sizeof(int));
     btct_->serialize(out);
     rlcsa_->save(out);
     lcp_rlcsa_->save(out);
+    dsa_->serialize(out);
 }

@@ -20,4 +20,6 @@ foreach( exe ${test_NAMES} )
     target_link_libraries( check_${exe} gctbio )
     target_link_libraries( check_${exe} textIndexes )
     target_link_libraries( check_${exe} cds )
+
+    target_link_libraries( check_${exe} libRepairGN )
 endforeach()

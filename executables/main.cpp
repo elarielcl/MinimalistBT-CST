@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <compressed/BTCT.h>
 #include <compressed/BTCST.h>
+#include <compressed/BTCSTLCSA.h>
 
 
 int main() {
@@ -58,14 +59,24 @@ int main() {
 
     std::string banana = "banananananananana";
     BTCST* btcst = new BTCST(banana);
-    std::cout << btcst->suffix_link(4) << std::endl;
+    std::cout << btcst->string_depth(6) << std::endl;
     std::ofstream ott("banana.btcst");
     btcst->serialize(ott);
     ott.close();
     std::ifstream itt("banana.btcst");
     BTCST* lbtcst = new BTCST(itt);
-    std::cout << btcst->suffix_link(4) << std::endl;
+    std::cout << lbtcst->string_depth(6) << std::endl;
 
+
+    BTCSTLCSA* btcstlcsa = new BTCSTLCSA(banana);
+    std::cout << btcstlcsa->suffix_link(4) << std::endl;
+    std::ofstream ott2("banana.btcstlcsa");
+    btcstlcsa->serialize(ott2);
+    ott2.close();
+    std::ifstream itt2("banana.btcstlcsa");
+    BTCSTLCSA* lbtcstlcsa = new BTCSTLCSA(itt2);
+    std::cout << lbtcstlcsa->suffix_link(4) << std::endl;
+    
     delete bt;
     delete cbt;
     delete lcbt;
@@ -73,6 +84,8 @@ int main() {
     delete lbtct;
     delete btcst;
     delete lbtcst;
+    delete btcstlcsa;
+    delete lbtcstlcsa;
     return 0;
 }
 

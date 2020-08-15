@@ -1,12 +1,14 @@
-#ifndef MINIMALISTBT_CST_BTCST_H
-#define MINIMALISTBT_CST_BTCST_H
+
+#ifndef MINIMALISTBT_CST_BTCSTLCSA_H
+#define MINIMALISTBT_CST_BTCSTLCSA_H
 
 #include <compressed/BTCT.h>
 #include <LCP_RLCSA.h>
 #include <rlcsa/rlcsa.h>
+#include <lcsa/LCSALENGTHS.hpp>
 
-
-class BTCST {
+//PENDING DO NOT STORE THE COMPLETE RLCSA ON SERIALIZE AND CONSTRUCTION (MAJOR CHANGE TO RLCSA)
+class BTCSTLCSA {
 public:
 
     int64_t node_ = -2;
@@ -19,15 +21,16 @@ public:
 
     TextIndexes::RLCSA* rlcsa_;
     TextIndexRLCSA* index_;
+    LCSALENGTHS::LCSALENGTHS* dsa_;
     cds_static::LCP_RLCSA* lcp_rlcsa_;
     BTCT* btct_;
 
     int n_;
     int sigma_;
 
-    BTCST(std::string&, int = PAPER, int = 2, int = 16, int = 32, int = 128);
-    BTCST(std::ifstream&);
-    ~BTCST();
+    BTCSTLCSA(std::string&, int = PAPER, int = 2, int = 16, int = 32);
+    BTCSTLCSA(std::ifstream&);
+    ~BTCSTLCSA();
 
 
     int first_child(int);
@@ -48,4 +51,4 @@ public:
 };
 
 
-#endif //MINIMALISTBT_CST_BTCST_H
+#endif //MINIMALISTBT_CST_BTCSTLCSA_H

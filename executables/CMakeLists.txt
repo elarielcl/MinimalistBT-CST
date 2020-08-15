@@ -17,4 +17,6 @@ foreach( exe ${project_EXECUTABLES} )
     target_link_libraries( ${exe} gctbio )
     target_link_libraries( ${exe} textIndexes )
     target_link_libraries( ${exe} cds )
+
+    target_link_libraries( ${exe} libRepairGN )
 endforeach()

@@ -169,7 +169,7 @@ namespace cds_static{
         }
         lcp_type = SAD_GON_OS;
         U_type = op_rs;
-     cerr << "change q to 32 again" << endl;
+     //cerr << "change q to 32 again" << endl;
         uint s = 16;
         uint *lcp = LCP_RLCSA::create_lcp(csa,text,n,s);
         uint pos =0;
@@ -198,6 +198,7 @@ namespace cds_static{
             pos+= lcp_act - lcp_prev + 2;
             lcp_prev = lcp_act;
         }
+        csa->deleteIterators(iters);
         bitset(S,pos);
         if(op_rs==BRW32_HDR)
             U = new BitSequenceRG(S, pos+1, 4); //(bitarray, length, factor)
@@ -242,6 +243,7 @@ namespace cds_static{
             pos+= lcp_act - lcp_prev + 2;
             lcp_prev = lcp_act;
         }
+        csa->deleteIterators(iters);
         bitset(S,pos);
         if(op_rs==BRW32_HDR)
             U = new BitSequenceRG(S, pos+1, 4); //(bitarray, length, factor)
