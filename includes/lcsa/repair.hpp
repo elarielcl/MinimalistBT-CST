@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 #include <string.h>
 #include <sdsl/int_vector.hpp>
-#include <repair_gn/include/irepair.h>
+#include <irepair.h>
 
 namespace util_repair {
 

@@ -12,8 +12,9 @@ include_directories(${sdsl_BINARY_DIR}/external/libdivsufsort/include)
 include_directories(external/cst.jouni/libraries/TextIndexes/includes)
 include_directories(external/cst.jouni/libraries/libcds2/includes)
 include_directories(external/cst.jouni/libraries/tools/includes)
-include_directories(external)
+include_directories(external/repair_gn/include)
 include_directories(includes)
+
 
 
 add_subdirectory(external)
