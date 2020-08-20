@@ -57,20 +57,29 @@ BTCSTLCSALCSA::BTCSTLCSALCSA(std::string& input_string, int block_tree_version, 
     }
     data[input_string.size()] = 0;
 
-    rlcsa_ = new TextIndexes::RLCSA(data, input_string.size()+1, block_size, 0, false, false);
-    index_ = new TextIndexRLCSA();
-
-    index_->rlcsa = rlcsa_;
-
-
-    TextIndexes::RLCSA* temp_rlcsa = new TextIndexes::RLCSA(data, input_string.size()+1, block_size, 128, false, false);;
+    TextIndexes::RLCSA* temp_rlcsa = new TextIndexes::RLCSA(data, input_string.size()+1, block_size, 2, false, false);;
     lcp_rlcsa_ = new LCP_FMN_RLCSA(temp_rlcsa, (char*)data, input_string.size()+1);
+
+    temp_rlcsa->support_display = false;
+    temp_rlcsa->support_locate = false;
+    temp_rlcsa->sample_rate = 1;
+
+    std::ofstream temp_file_out("save.tf");
+    temp_rlcsa->save(temp_file_out);
+    temp_file_out.close();
 
     delete temp_rlcsa;
     delete[] data;
 
-    n_ = input_string.size()+1;
+    std::ifstream temp_file_in("save.tf");
+    rlcsa_ = new TextIndexes::RLCSA(temp_file_in);
+    temp_file_in.close();
+    remove("save.tf");
 
+    index_ = new TextIndexRLCSA();
+
+    index_->rlcsa = rlcsa_;
+    n_ = input_string.size()+1;
 }
 
 BTCSTLCSALCSA::BTCSTLCSALCSA(std::ifstream& in) {

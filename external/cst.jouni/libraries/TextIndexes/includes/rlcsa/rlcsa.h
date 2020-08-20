@@ -49,6 +49,8 @@ class RLCSA
 //--------------------------------------------------------------------------
 
     const static usint ENDPOINT_BLOCK_SIZE = 16;
+    bool support_locate, support_display;
+    usint sample_rate;
 
     RLCSA(const std::string& base_name, bool print = false);
     RLCSA(std::ifstream&, bool print = false);
@@ -286,10 +288,9 @@ class RLCSA
     usint index_pointers[CHARS]; // which of the above is at i * index_rate
     usint index_rate;
 
-    bool support_locate, support_display;
+
 
     // A sequence starts at the next multiple of sample_rate after the end of previous sequence.
-    usint sample_rate;
     DeltaVector* end_points;
 
 //--------------------------------------------------------------------------
