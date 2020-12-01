@@ -1,5 +1,5 @@
 # Description
-This repository contains an implementation for the BT-CST data structure described [here](https://link.springer.com/chapter/10.1007/978-3-030-32686-9_31). Details of the implementation follow the experimental studies conducted in my MSc. thesis available [here](https://users.dcc.uchile.cl/~gnavarro/mem/algoritmos/tesisManuel.pdf). This repositorie contains only the cannonical BT-CST versions. If you want to play with the software used in this experimental study, it is available in the repo [https://github.com/elarielcl/BT-CST](https://github.com/elarielcl/BT-CST)
+This repository contains an implementation for the BT-CST data structure described [here](https://link.springer.com/chapter/10.1007/978-3-030-32686-9_31). Details of the implementation follow the experimental studies conducted in my MSc. thesis available [here](https://users.dcc.uchile.cl/~gnavarro/mem/algoritmos/tesisManuel.pdf). This repository contains only the cannonical BT-CST versions. If you want to play with the software used in this experimental study, it is available in the repo [https://github.com/elarielcl/BT-CST](https://github.com/elarielcl/BT-CST)
 # Installation Guide
 First clone the repo:
 ```
