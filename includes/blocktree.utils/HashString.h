@@ -5,13 +5,16 @@
 
 class HashString {
 public:
+    std::string aux;
+    std::basic_string<int64_t> waux;
     size_t hash_;
     std::string& s_;
+    std::basic_string<int64_t>& ws_;
     int init_;
     int end_;
 
     HashString(size_t, std::string&, int, int);
-    ~HashString();
+    HashString(size_t, std::basic_string<int64_t>&, int, int);
 
     bool operator==(const HashString&) const;
 };

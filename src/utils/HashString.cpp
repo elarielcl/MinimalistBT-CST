@@ -1,14 +1,15 @@
 #include "blocktree.utils/HashString.h"
 
 
-HashString::HashString(size_t hash, std::string& s, int init, int end) : hash_(hash), s_(s), init_(init), end_(end) {
+HashString::HashString(size_t hash, std::string& s, int init, int end) : hash_(hash), s_(s), init_(init), end_(end), ws_(waux) {
 
 }
 
 
-HashString::~HashString() {
+HashString::HashString(size_t hash, std::basic_string<int64_t>& s, int init, int end) : hash_(hash), ws_(s), init_(init), end_(end), s_(aux) {
 
 }
+
 
 bool HashString::operator==(const HashString &other) const {
     int length = end_-init_+1;
@@ -19,6 +20,9 @@ bool HashString::operator==(const HashString &other) const {
         }
         return true;
     }
-    return true;
 
+    for (int i = 0; i < length; ++i) {
+        if (ws_[init_ + i] != other.ws_[other.init_ + i]) return false;
+    }
+    return true;
 }
